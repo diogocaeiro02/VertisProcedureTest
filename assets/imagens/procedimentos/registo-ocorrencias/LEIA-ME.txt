@@ -1,5 +1,0 @@
-Coloque nesta pasta as imagens com estes nomes:
-- 01-receber-ocorrencia.webp
-- 02-classificar-registar.webp
-- 03-acompanhar-resolucao.webp
-- 04-encerrar-ocorrencia.webp
