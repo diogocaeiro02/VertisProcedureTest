@@ -15,7 +15,10 @@ const REQUIRED_COLUMNS = [
 const state = {
   procedures: [],
   errors: [],
-  selectedCategory: ""
+  selectedCategory: "",
+
+  // Apenas a apresentação inicial abre automaticamente o primeiro procedimento.
+  autoOpenFirstProcedure: true
 };
 
 const elements = {
@@ -259,9 +262,24 @@ function rowsToProcedure(rows, filename) {
 
 
 /**
- * Fecha o menu lateral em ecrãs pequenos.
+ * Indica se a navegação está no modo móvel.
+ */
+function isMobileSidebar() {
+  return window.innerWidth <= 900;
+}
+
+
+/**
+ * Fecha o menu lateral apenas no modo móvel.
+ *
+ * No computador, os cliques na navegação não devem alterar o estado
+ * recolhido ou expandido escolhido através do botão de menu.
  */
 function closeSidebar() {
+  if (!isMobileSidebar()) {
+    return;
+  }
+
   elements.sidebar.classList.remove("open");
   elements.sidebarOverlay.hidden = true;
   elements.menuButton.setAttribute("aria-expanded", "false");
@@ -270,9 +288,31 @@ function closeSidebar() {
 
 
 /**
- * Abre ou fecha o menu lateral em ecrãs pequenos.
+ * Abre ou fecha o menu lateral.
+ *
+ * Em computador, o menu recolhe a barra lateral e liberta toda a largura
+ * para o conteúdo. Em telemóvel e tablet, funciona como painel sobreposto.
  */
 function toggleSidebar() {
+  if (!isMobileSidebar()) {
+    const willCollapse = !document.body.classList.contains(
+      "sidebar-collapsed"
+    );
+
+    document.body.classList.toggle(
+      "sidebar-collapsed",
+      willCollapse
+    );
+
+    elements.sidebarOverlay.hidden = true;
+    elements.menuButton.setAttribute(
+      "aria-expanded",
+      String(!willCollapse)
+    );
+
+    return;
+  }
+
   const willOpen = !elements.sidebar.classList.contains("open");
 
   elements.sidebar.classList.toggle("open", willOpen);
@@ -282,6 +322,28 @@ function toggleSidebar() {
     String(willOpen)
   );
   document.body.classList.toggle("sidebar-open", willOpen);
+}
+
+
+/**
+ * Ajusta o estado da navegação quando a largura do ecrã muda.
+ */
+function syncSidebarWithViewport() {
+  elements.sidebar.classList.remove("open");
+  elements.sidebarOverlay.hidden = true;
+  document.body.classList.remove("sidebar-open");
+
+  if (isMobileSidebar()) {
+    document.body.classList.remove("sidebar-collapsed");
+    elements.menuButton.setAttribute("aria-expanded", "false");
+  } else {
+    elements.menuButton.setAttribute(
+      "aria-expanded",
+      String(
+        !document.body.classList.contains("sidebar-collapsed")
+      )
+    );
+  }
 }
 
 
@@ -725,12 +787,17 @@ function renderManual() {
   }, {});
 
   let firstProcedure = true;
+  const shouldOpenFirstProcedure = state.autoOpenFirstProcedure;
 
   elements.manualContent.innerHTML = Object.entries(grouped)
     .sort(([left], [right]) => left.localeCompare(right, "pt"))
     .map(([category, procedures]) => {
       const renderedProcedures = procedures.map(procedure => {
-        const html = renderProcedure(procedure, firstProcedure);
+        const html = renderProcedure(
+          procedure,
+          shouldOpenFirstProcedure && firstProcedure
+        );
+
         firstProcedure = false;
         return html;
       }).join("");
@@ -750,6 +817,10 @@ function renderManual() {
       `;
     })
     .join("");
+
+  // As renderizações seguintes, incluindo filtros e categorias,
+  // apresentam todos os procedimentos recolhidos.
+  state.autoOpenFirstProcedure = false;
 
   openHashTarget();
 }
@@ -866,7 +937,7 @@ async function loadProcedures() {
 
       try {
         response = await fetch(
-          `./procedimentos/${encodeURIComponent(filename)}?v=2.3.0`,
+          `./procedimentos/${encodeURIComponent(filename)}?v=2.5.0`,
           { cache: "no-store" }
         );
       } catch {
@@ -957,21 +1028,30 @@ function setAllProceduresOpen(open) {
 elements.menuButton.addEventListener("click", toggleSidebar);
 elements.sidebarOverlay.addEventListener("click", closeSidebar);
 
-elements.searchInput.addEventListener("input", renderManual);
+elements.searchInput.addEventListener("input", () => {
+  state.autoOpenFirstProcedure = false;
+  renderManual();
+});
 
 elements.categoryFilter.addEventListener("change", () => {
   state.selectedCategory = elements.categoryFilter.value;
+  state.autoOpenFirstProcedure = false;
+
   renderCategoryNavigation();
   renderManual();
 });
 
-elements.sortSelect.addEventListener("change", renderManual);
+elements.sortSelect.addEventListener("change", () => {
+  state.autoOpenFirstProcedure = false;
+  renderManual();
+});
 
 elements.clearFiltersButton.addEventListener("click", () => {
   elements.searchInput.value = "";
   elements.categoryFilter.value = "";
   elements.sortSelect.value = "order";
   state.selectedCategory = "";
+  state.autoOpenFirstProcedure = false;
 
   renderCategoryNavigation();
   renderManual();
@@ -990,6 +1070,7 @@ elements.categoryNavigation.addEventListener("click", event => {
   const category = link.dataset.category || "";
 
   state.selectedCategory = category;
+  state.autoOpenFirstProcedure = false;
   elements.categoryFilter.value = category;
 
   renderCategoryNavigation();
@@ -1052,10 +1133,7 @@ elements.backToTopButton.addEventListener("click", () => {
 
 window.addEventListener("hashchange", openHashTarget);
 
-window.addEventListener("resize", () => {
-  if (window.innerWidth > 900) {
-    closeSidebar();
-  }
-});
+window.addEventListener("resize", syncSidebarWithViewport);
 
+syncSidebarWithViewport();
 loadProcedures();
