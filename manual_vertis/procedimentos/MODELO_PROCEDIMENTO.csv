@@ -1,0 +1,2 @@
+﻿id;titulo;categoria;ordem;responsavel;objetivo;passo_numero;passo_titulo;passo_descricao;passo_imagem;passo_imagem_alt;passo_imagem_legenda;prazo;documentos;observacoes;ativo;versao;ultima_revisao
+PROC-XXX-001;Título do procedimento;Categoria;10;Responsável;Objetivo do procedimento;1;Título do primeiro passo;Descrição clara do primeiro passo;assets/imagens/procedimentos/nome-procedimento/01-imagem-do-passo.webp;Descrição acessível da imagem;Legenda opcional apresentada abaixo da imagem;Prazo aplicável;Documentos necessários;Observações ou controlos;1;1.0;2026-07-21

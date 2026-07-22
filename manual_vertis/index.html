@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Manual de Procedimentos Vertis">
+  <meta name="theme-color" content="#009846">
+  <title>Manual de Procedimentos | Vertis</title>
+
+  <link id="mainStylesheet" rel="stylesheet" href="./styles.css?v=2.3.0">
+
+  <style>
+    #stylesheetError {
+      display: none;
+      margin: 64px 12px 12px 256px;
+      padding: 12px 14px;
+      border: 1px solid #d59c00;
+      background: #fff7dc;
+      color: #624900;
+      font: 14px/1.5 Arial, sans-serif;
+    }
+
+    html.stylesheet-failed #stylesheetError {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      #stylesheetError {
+        margin-left: 12px;
+      }
+    }
+  </style>
+  <script src="./procedimentos/index.js?v=2.3.0" defer></script>
+  <script src="./app.js?v=2.3.0" defer></script>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", function () {
+      var stylesheet = document.getElementById("mainStylesheet");
+
+      if (stylesheet) {
+        stylesheet.addEventListener("error", function () {
+          document.documentElement.classList.add("stylesheet-failed");
+        });
+      }
+
+      window.setTimeout(function () {
+        var topbar = document.querySelector(".topbar");
+
+        if (
+          topbar &&
+          window.getComputedStyle(topbar).position !== "fixed"
+        ) {
+          document.documentElement.classList.add("stylesheet-failed");
+        }
+      }, 700);
+    });
+  </script>
+
+</head>
+
+<body>
+  <div id="stylesheetError" role="alert">
+    <strong>O ficheiro de estilos não foi carregado.</strong>
+    Confirme que <code>styles.css</code> está na mesma pasta que
+    <code>index.html</code> na origem publicada pelo GitHub Pages.
+  </div>
+  <header class="topbar">
+    <button id="menuButton"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="sidebar">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <a class="brand" href="#inicio" aria-label="Vertis — início do manual">
+      <span class="brand-symbol" aria-hidden="true">◉</span>
+      <span class="brand-name">vertis</span>
+    </a>
+
+    <div class="topbar-separator"></div>
+
+    <div class="breadcrumb" aria-label="Localização">
+      <span>Gestão de Condomínios</span>
+      <span class="breadcrumb-divider">/</span>
+      <strong>Manual de Procedimentos</strong>
+    </div>
+
+    <div class="topbar-actions">
+      <span id="loadStatus" class="load-status" aria-live="polite">
+        A carregar…
+      </span>
+
+      <button id="printButton"
+              class="topbar-action"
+              type="button"
+              title="Imprimir o manual">
+        <span aria-hidden="true">▣</span>
+        <span>Imprimir</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
+
+  <aside id="sidebar" class="sidebar" aria-label="Navegação do manual">
+    <div class="sidebar-scroll">
+      <nav class="primary-navigation">
+        <a class="primary-link active" href="#inicio">
+          <span class="primary-icon" aria-hidden="true">⌂</span>
+          <span>Visão geral</span>
+        </a>
+
+        <a class="primary-link" href="#procedimentos">
+          <span class="primary-icon" aria-hidden="true">▦</span>
+          <span>Procedimentos</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="sidebar-heading">
+          <span>Categorias</span>
+          <span id="categoryCount" class="sidebar-count">0</span>
+        </div>
+
+        <nav id="categoryNavigation" class="secondary-navigation">
+          <div class="sidebar-placeholder">A carregar categorias…</div>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-heading">
+          <span>Neste manual</span>
+          <span id="sidebarProcedureCount" class="sidebar-count">0</span>
+        </div>
+
+        <nav id="procedureNavigation" class="procedure-navigation">
+          <div class="sidebar-placeholder">A carregar procedimentos…</div>
+        </nav>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <span>Manual interno</span>
+      <strong>Vertis</strong>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <section id="inicio" class="overview-section">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Manual interno</p>
+          <h1>Manual de Procedimentos</h1>
+          <p class="page-introduction">
+            Consulte os procedimentos operacionais da Vertis de forma rápida,
+            consistente e organizada.
+          </p>
+        </div>
+
+        <div class="heading-actions">
+          <button id="expandAllButton"
+                  class="button button-secondary"
+                  type="button">
+            Expandir todos
+          </button>
+
+          <button id="collapseAllButton"
+                  class="button button-muted"
+                  type="button">
+            Recolher todos
+          </button>
+        </div>
+      </div>
+
+      <div class="overview-grid">
+        <article class="overview-card overview-card-highlight">
+          <div>
+            <span class="overview-label">Procedimentos disponíveis</span>
+            <strong id="procedureCount">0</strong>
+          </div>
+          <span class="overview-icon" aria-hidden="true">▤</span>
+        </article>
+
+        <article class="overview-card">
+          <div>
+            <span class="overview-label">Passos documentados</span>
+            <strong id="stepCount">0</strong>
+          </div>
+          <span class="overview-icon" aria-hidden="true">✓</span>
+        </article>
+
+        <article class="overview-card">
+          <div>
+            <span class="overview-label">Categorias</span>
+            <strong id="overviewCategoryCount">0</strong>
+          </div>
+          <span class="overview-icon" aria-hidden="true">▦</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="procedimentos" class="procedures-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Consulta</p>
+          <h2>Procedimentos</h2>
+        </div>
+
+        <p id="resultsSummary" class="results-summary" aria-live="polite"></p>
+      </div>
+
+      <div class="filter-panel" role="search">
+        <label class="field search-field">
+          <span>Pesquisar</span>
+          <div class="input-with-icon">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput"
+                   type="search"
+                   autocomplete="off"
+                   placeholder="Título, objetivo, responsável, passo ou documento">
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Categoria</span>
+          <select id="categoryFilter">
+            <option value="">Todas as categorias</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Ordenação</span>
+          <select id="sortSelect">
+            <option value="order">Ordem do manual</option>
+            <option value="title">Título A–Z</option>
+            <option value="review">Revisão mais recente</option>
+          </select>
+        </label>
+
+        <button id="clearFiltersButton"
+                class="button button-muted filter-clear"
+                type="button">
+          Limpar filtros
+        </button>
+      </div>
+
+      <div id="messageBox" class="message-box" hidden></div>
+
+      <div id="manualContent" class="manual-content">
+        <div class="loading-state" role="status">
+          <span class="loading-spinner" aria-hidden="true"></span>
+          <strong>A carregar o manual…</strong>
+          <span>Os procedimentos estão a ser preparados.</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span>Vertis — Gestão de Condomínios</span>
+      <button id="backToTopButton" type="button">Voltar ao topo ↑</button>
+    </footer>
+  </main>
+</body>
+</html>
