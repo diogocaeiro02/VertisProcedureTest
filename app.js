@@ -15,10 +15,7 @@ const REQUIRED_COLUMNS = [
 const state = {
   procedures: [],
   errors: [],
-  selectedCategory: "",
-
-  // Apenas a apresentação inicial abre automaticamente o primeiro procedimento.
-  autoOpenFirstProcedure: true
+  selectedCategory: ""
 };
 
 const elements = {
@@ -44,7 +41,6 @@ const elements = {
   messageBox: document.getElementById("messageBox"),
   manualContent: document.getElementById("manualContent"),
 
-  printButton: document.getElementById("printButton"),
   expandAllButton: document.getElementById("expandAllButton"),
   collapseAllButton: document.getElementById("collapseAllButton"),
   backToTopButton: document.getElementById("backToTopButton")
@@ -592,9 +588,17 @@ function renderProcedure(procedure, openByDefault = false) {
           </span>
 
           <div class="procedure-tools">
-            <button class="text-button"
+            <button class="procedure-action-button"
+                    type="button"
+                    data-print-procedure="${procedureId}">
+              <span aria-hidden="true">▣</span>
+              Imprimir procedimento
+            </button>
+
+            <button class="procedure-action-button procedure-action-secondary"
                     type="button"
                     data-copy-link="${procedureId}">
+              <span aria-hidden="true">↗</span>
               Copiar ligação
             </button>
           </div>
@@ -786,21 +790,12 @@ function renderManual() {
     return groups;
   }, {});
 
-  let firstProcedure = true;
-  const shouldOpenFirstProcedure = state.autoOpenFirstProcedure;
-
   elements.manualContent.innerHTML = Object.entries(grouped)
     .sort(([left], [right]) => left.localeCompare(right, "pt"))
     .map(([category, procedures]) => {
-      const renderedProcedures = procedures.map(procedure => {
-        const html = renderProcedure(
-          procedure,
-          shouldOpenFirstProcedure && firstProcedure
-        );
-
-        firstProcedure = false;
-        return html;
-      }).join("");
+      const renderedProcedures = procedures
+        .map(procedure => renderProcedure(procedure))
+        .join("");
 
       return `
         <section id="category-${slug(category)}"
@@ -817,10 +812,6 @@ function renderManual() {
       `;
     })
     .join("");
-
-  // As renderizações seguintes, incluindo filtros e categorias,
-  // apresentam todos os procedimentos recolhidos.
-  state.autoOpenFirstProcedure = false;
 
   openHashTarget();
 }
@@ -990,6 +981,47 @@ async function loadProcedures() {
 
 
 /**
+ * Imprime apenas o procedimento escolhido.
+ *
+ * O cartão é aberto temporariamente e todos os restantes elementos
+ * são escondidos através das regras específicas de impressão.
+ */
+function printProcedure(procedureId) {
+  const procedure = document.getElementById(procedureId);
+
+  if (!(procedure instanceof HTMLDetailsElement)) {
+    return;
+  }
+
+  const category = procedure.closest(".category-group");
+  const wasOpen = procedure.open;
+
+  procedure.open = true;
+  procedure.classList.add("print-target");
+  category?.classList.add("print-category");
+  document.body.classList.add("printing-procedure");
+
+  const cleanup = () => {
+    document.body.classList.remove("printing-procedure");
+    procedure.classList.remove("print-target");
+    category?.classList.remove("print-category");
+
+    if (!wasOpen) {
+      procedure.open = false;
+    }
+
+    window.removeEventListener("afterprint", cleanup);
+  };
+
+  window.addEventListener("afterprint", cleanup);
+
+  requestAnimationFrame(() => {
+    window.print();
+  });
+}
+
+
+/**
  * Copia uma ligação direta para um procedimento.
  */
 async function copyProcedureLink(procedureId, button) {
@@ -1023,26 +1055,79 @@ function setAllProceduresOpen(open) {
 }
 
 
+/**
+ * Atualiza o botão principal ativo na barra lateral.
+ */
+function setPrimaryNavigationActive(sectionId) {
+  document.querySelectorAll(".primary-link").forEach(link => {
+    const targetId = link.getAttribute("href")?.replace("#", "");
+    link.classList.toggle("active", targetId === sectionId);
+  });
+}
+
+
+/**
+ * Atualiza a navegação principal de acordo com a posição da página.
+ */
+function updatePrimaryNavigationFromScroll() {
+  const proceduresSection = document.getElementById("procedimentos");
+
+  if (!proceduresSection) {
+    return;
+  }
+
+  const threshold = Number.parseInt(
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--topbar-height"),
+    10
+  ) + 90;
+
+  setPrimaryNavigationActive(
+    proceduresSection.getBoundingClientRect().top <= threshold
+      ? "procedimentos"
+      : "inicio"
+  );
+}
+
+
+/**
+ * Remove uma ligação direta antiga antes de aplicar filtros.
+ *
+ * Sem esta limpeza, um URL terminado em #procedure-... podia voltar
+ * a abrir um procedimento depois de selecionar uma categoria.
+ */
+function clearProcedureHash() {
+  if (!window.location.hash.startsWith("#procedure-")) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.hash = "procedimentos";
+  window.history.replaceState(null, "", url);
+}
+
+
 /* Eventos da interface */
 
 elements.menuButton.addEventListener("click", toggleSidebar);
 elements.sidebarOverlay.addEventListener("click", closeSidebar);
 
 elements.searchInput.addEventListener("input", () => {
-  state.autoOpenFirstProcedure = false;
+  clearProcedureHash();
   renderManual();
 });
 
 elements.categoryFilter.addEventListener("change", () => {
   state.selectedCategory = elements.categoryFilter.value;
-  state.autoOpenFirstProcedure = false;
 
+  clearProcedureHash();
+  setPrimaryNavigationActive("procedimentos");
   renderCategoryNavigation();
   renderManual();
 });
 
 elements.sortSelect.addEventListener("change", () => {
-  state.autoOpenFirstProcedure = false;
+  clearProcedureHash();
   renderManual();
 });
 
@@ -1051,8 +1136,9 @@ elements.clearFiltersButton.addEventListener("click", () => {
   elements.categoryFilter.value = "";
   elements.sortSelect.value = "order";
   state.selectedCategory = "";
-  state.autoOpenFirstProcedure = false;
 
+  clearProcedureHash();
+  setPrimaryNavigationActive("procedimentos");
   renderCategoryNavigation();
   renderManual();
   elements.searchInput.focus();
@@ -1070,9 +1156,10 @@ elements.categoryNavigation.addEventListener("click", event => {
   const category = link.dataset.category || "";
 
   state.selectedCategory = category;
-  state.autoOpenFirstProcedure = false;
   elements.categoryFilter.value = category;
 
+  clearProcedureHash();
+  setPrimaryNavigationActive("procedimentos");
   renderCategoryNavigation();
   renderManual();
 
@@ -1091,29 +1178,41 @@ elements.procedureNavigation.addEventListener("click", event => {
     return;
   }
 
+  setPrimaryNavigationActive("procedimentos");
   closeSidebar();
 });
 
 elements.manualContent.addEventListener("click", event => {
-  const button = event.target.closest("[data-copy-link]");
+  const printButton = event.target.closest("[data-print-procedure]");
 
-  if (!button) {
+  if (printButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    printProcedure(printButton.dataset.printProcedure);
     return;
   }
 
-  event.preventDefault();
-  event.stopPropagation();
+  const copyButton = event.target.closest("[data-copy-link]");
 
-  copyProcedureLink(button.dataset.copyLink, button);
+  if (copyButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    copyProcedureLink(copyButton.dataset.copyLink, copyButton);
+  }
 });
 
 document.querySelectorAll(".primary-link").forEach(link => {
-  link.addEventListener("click", closeSidebar);
-});
+  link.addEventListener("click", () => {
+    const sectionId = link.getAttribute("href")?.replace("#", "");
 
-elements.printButton.addEventListener("click", () => {
-  setAllProceduresOpen(true);
-  window.print();
+    if (sectionId) {
+      setPrimaryNavigationActive(sectionId);
+    }
+
+    closeSidebar();
+  });
 });
 
 elements.expandAllButton.addEventListener("click", () => {
@@ -1133,7 +1232,26 @@ elements.backToTopButton.addEventListener("click", () => {
 
 window.addEventListener("hashchange", openHashTarget);
 
-window.addEventListener("resize", syncSidebarWithViewport);
+let navigationFrameRequested = false;
+
+window.addEventListener("scroll", () => {
+  if (navigationFrameRequested) {
+    return;
+  }
+
+  navigationFrameRequested = true;
+
+  requestAnimationFrame(() => {
+    updatePrimaryNavigationFromScroll();
+    navigationFrameRequested = false;
+  });
+}, { passive: true });
+
+window.addEventListener("resize", () => {
+  syncSidebarWithViewport();
+  updatePrimaryNavigationFromScroll();
+});
 
 syncSidebarWithViewport();
+updatePrimaryNavigationFromScroll();
 loadProcedures();

@@ -1,19 +1,13 @@
 # Alterações v2.5
 
-Esta versão mantém a estrutura e o funcionamento existentes, com um
-refinamento completo da apresentação.
-
-## Melhorias
-
-- barra superior com maior contraste e acabamento;
-- navegação lateral com estados ativos mais claros;
-- página inicial apresentada como painel de destaque;
-- indicadores com melhor hierarquia visual;
-- filtros maiores, mais legíveis e fáceis de utilizar;
-- categorias mais evidentes;
-- cartões de procedimentos com maior separação e profundidade;
-- passos apresentados como uma linha temporal;
-- informação de prazo, documentos e observações agrupada;
-- melhor adaptação a telemóvel e tablet;
-- estilos de impressão preservados;
-- versão de cache atualizada para `2.5.0`.
+- Correção completa da navegação lateral em telemóvel e tablet.
+- A barra lateral recolhe apenas no desktop e funciona como painel móvel em ecrãs pequenos.
+- Nenhum procedimento abre automaticamente ao selecionar uma categoria.
+- Limpeza do hash de ligação direta antes de aplicar filtros.
+- Botão de impressão movido para dentro de cada procedimento.
+- Impressão limitada ao procedimento escolhido.
+- Estados ativos para “Visão geral” e “Procedimentos”, incluindo atualização ao fazer scroll.
+- Refinamento visual de cartões, filtros, barra superior e procedimentos.
+- Layout móvel revisto para 900 px, 720 px e 430 px.
+- Seis procedimentos adicionais de demonstração.
+- Cache atualizado para a versão 2.5.0.
